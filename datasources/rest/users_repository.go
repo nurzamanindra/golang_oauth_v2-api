@@ -11,7 +11,7 @@ import (
 
 var (
 	UserRepository RestUserRepository = &userRepository{}
-	client                            = resty.New()
+	client                            = resty.New().SetHostURL("http://localhost:9001").SetTimeout(1000 * time.Millisecond)
 )
 
 type RestUserRepository interface {
@@ -21,13 +21,18 @@ type RestUserRepository interface {
 type userRepository struct{}
 
 func (u *userRepository) LoginUser(email string, password string) (*users.User, *errors.RestErr) {
-	client.SetHostURL("https://localhost:9000").SetTimeout(1000 * time.Millisecond)
+
 	request := users.UserLoginRequest{
 		Email:    email,
 		Password: password,
 	}
+	hdr := map[string]string{
+		"Content-Type": "application/json",
+		"Accept":       "application/json",
+		"X-Public":     "true",
+	}
 
-	response, err := client.R().SetBody(request).Post("/users/login")
+	response, err := client.R().SetHeaders(hdr).SetBody(request).Post("/users/login")
 
 	if err != nil {
 		return nil, errors.NewInternalServerError(err.Error())

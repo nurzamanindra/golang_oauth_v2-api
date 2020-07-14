@@ -1,6 +1,7 @@
 package services
 
 import (
+	"github.com/nurzamanindra/golang_oauth_v2-api/datasources/rest"
 	"github.com/nurzamanindra/golang_oauth_v2-api/domain/access_token"
 	"github.com/nurzamanindra/golang_oauth_v2-api/utils/errors"
 )
@@ -13,7 +14,7 @@ type accessTokenService struct{}
 
 type accessTokenServiceInterface interface {
 	GetTokenById(string) (*access_token.AccessToken, *errors.RestErr)
-	CreateAccessToken(*access_token.AccessToken) *errors.RestErr
+	CreateAccessToken(access_token.AccessTokenRequest) (*access_token.AccessToken, *errors.RestErr)
 }
 
 func (at *accessTokenService) GetTokenById(id string) (*access_token.AccessToken, *errors.RestErr) {
@@ -30,12 +31,22 @@ func (at *accessTokenService) GetTokenById(id string) (*access_token.AccessToken
 	return &at_db, nil
 }
 
-func (at *accessTokenService) CreateAccessToken(payload *access_token.AccessToken) *errors.RestErr {
-	payload.GenerateNewExpired()
-	payload.Generate()
+func (at *accessTokenService) CreateAccessToken(payload access_token.AccessTokenRequest) (*access_token.AccessToken, *errors.RestErr) {
 
-	if err := payload.SaveToken(); err != nil {
-		return err
+	if err := payload.Validate(); err != nil {
+		return nil, err
 	}
-	return nil
+
+	user, err := rest.UserRepository.LoginUser(payload.Username, payload.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	token := access_token.AccessToken{}
+	token.GenerateNewExpired()
+	token.Generate(user)
+	if err := token.SaveToken(); err != nil {
+		return nil, err
+	}
+	return &token, nil
 }

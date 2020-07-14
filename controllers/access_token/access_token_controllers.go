@@ -21,17 +21,17 @@ func GetAccessTokenById(c *gin.Context) {
 }
 
 func CreateAccessToken(c *gin.Context) {
-	var payload access_token.AccessToken
+	var payload access_token.AccessTokenRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		restErr := errors.NewBadRequestError(err.Error())
 		c.JSON(restErr.Status, restErr)
 		return
 	}
-	err := services.AccessTokenService.CreateAccessToken(&payload)
+	token, err := services.AccessTokenService.CreateAccessToken(payload)
 	if err != nil {
 		c.JSON(err.Status, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, payload)
+	c.JSON(http.StatusCreated, token)
 }
